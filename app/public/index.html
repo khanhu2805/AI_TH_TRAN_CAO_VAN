@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teachable Machine with ESP32</title>
+    <style>
+        video {
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <h1>Teachable Machine Image Model</h1>
+    <button type="button" onclick="init()">Start</button>
+    <div id="webcam-container"></div>
+    <div id="label-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+        const URL = "https://teachablemachine.withgoogle.com/models/PmUojyI2g/";
+
+        let model, webcam, labelContainer, maxPredictions, result;
+
+        // Load the image model and setup the webcam
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            // Setup webcam
+            webcam = new tmImage.Webcam(200, 200, true); // true for flip
+            await webcam.setup(); // Request access to webcam
+            await webcam.play(); // Start webcam
+            window.requestAnimationFrame(loop);
+
+            // Append webcam canvas to HTML container
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+
+            labelContainer = document.getElementById("label-container");
+            // for (let i = 0; i < maxPredictions; i++) {
+            //     labelContainer.appendChild(document.createElement("div"));
+            // }
+        }
+
+        // The loop function to constantly get webcam image and make predictions
+        async function loop() {
+            webcam.update(); // Update the webcam frame
+            await predict(); // Run the prediction function
+            window.requestAnimationFrame(loop);
+        }
+
+        // Function to predict the webcam image using Teachable Machine model
+        async function predict() {
+            const prediction = await model.predictTopK(webcam.canvas, 1);
+            // for (let i = 0; i < maxPredictions; i++) {
+            //     const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+            //     labelContainer.childNodes[i].innerHTML = classPrediction;
+            // }
+            if (prediction[0].probability >= 0.955) {
+                
+                result = prediction[0].className;
+            }
+            else {
+                result = "Chưa nhận diện được"; 
+            }
+            labelContainer.innerHTML = result ;
+            console.log("Prediction Result:", result);
+            // Send the result to the server
+            sendResultToServer(result);
+        }
+
+        // Function to send the result to the server
+        async function sendResultToServer(result) {
+            fetch('http://localhost:5000/process-result', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ result: result })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Result sent to server:", data);
+            })
+            .catch(error => console.error('Error sending result to server:', error));
+        }
+    </script>
+</body>
+</html>

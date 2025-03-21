@@ -1,0 +1,14 @@
+{
+  "name": "teachable-machine-esp32",
+  "version": "1.0.0",
+  "description": "Web Server to capture image and send to ESP32 via HTTP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "body-parser": "^1.19.0",
+    "node-fetch": "^2.6.1"
+  }
+}
