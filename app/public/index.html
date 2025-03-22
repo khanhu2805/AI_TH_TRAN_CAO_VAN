@@ -49,11 +49,21 @@
         }
 
         // The loop function to constantly get webcam image and make predictions
-        async function loop() {
-            webcam.update(); // Update the webcam frame
-            await predict(); // Run the prediction function
-            window.requestAnimationFrame(loop);
-        }
+        let lastPredictTime = 0;
+
+async function loop() {
+    webcam.update(); // Cập nhật khung hình webcam
+
+    const currentTime = Date.now();
+    // Nếu khoảng thời gian giữa các lần gọi predict lớn hơn 2000ms (2 giây), mới gọi predict
+    if (currentTime - lastPredictTime > 100) {
+        lastPredictTime = currentTime;
+        await predict(); // Gọi hàm predict với delay
+    }
+
+    window.requestAnimationFrame(loop); // Gọi lại vòng lặp
+}
+
 
         // Function to predict the webcam image using Teachable Machine model
         async function predict() {
@@ -77,7 +87,7 @@
 
         // Function to send the result to the server
         async function sendResultToServer(result) {
-            fetch('http://localhostlocalhost:50005000/process-result', {
+            fetch('http://lekhaquynhnhu.id.vn/process-result', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
