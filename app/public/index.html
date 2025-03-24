@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NHẬN DIỆN MỞ KHÓA</title>
     <style>
-        video {
+        video, canvas {
             width: 100%;
             max-width: 500px;
             border: 1px solid black;
@@ -48,26 +48,32 @@
         .custom-button.stop {
             background-color: #f44336;
         }
+
+        #flipButton {
+            display: none;
+        }
     </style>
 </head>
 
 <body>
     <h1>NHẬN DIỆN MỞ KHÓA</h1>
-    <button id="toggleButton" class="custom-button" onclick="toggleWebcam()">Start</button>
+    <button id="toggleButton" class="custom-button" onclick="toggleWebcam()">BẬT</button>
+    <button id="flipButton" class="custom-button" onclick="flipCamera()">LẬT CAMERA</button>
     <div id="webcam-container"></div>
     <div id="label-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script type="text/javascript">
-        const URL = "https://teachablemachine.withgoogle.com/models/PmUojyI2g/";
-
-        let model, webcam, labelContainer, maxPredictions, result;
+        const URL = "https://teachablemachine.withgoogle.com/models/NJbZPcYq_/";
+        let model, labelContainer, maxPredictions, result;
         let isRunning = false;
         let animationFrameId = null;
+        let currentStream = null;
+        let videoElement = null;
+        let useFrontCamera = true;
+        let webcam = null;
 
-        // Load the image model and setup the webcam
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
@@ -75,18 +81,43 @@
             model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
 
-            // Setup webcam
-            webcam = new tmImage.Webcam(200, 200, true); // true for flip
-            await webcam.setup(); // Request access to webcam
-            await webcam.play(); // Start webcam
-            startLoop();
-
-            // Clear container and append new webcam canvas
-            const webcamContainer = document.getElementById("webcam-container");
-            webcamContainer.innerHTML = ''; // Clear any existing content
-            webcamContainer.appendChild(webcam.canvas);
-
             labelContainer = document.getElementById("label-container");
+        }
+
+        async function startWebcam() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
+            const constraints = {
+                video: {
+                    facingMode: useFrontCamera ? 'user' : 'environment',
+                    width: 200,
+                    height: 200
+                }
+            };
+
+            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+            videoElement = document.createElement('video');
+            videoElement.srcObject = currentStream;
+            videoElement.setAttribute('playsinline', '');
+            videoElement.width = 200;
+            videoElement.height = 200;
+            await videoElement.play();
+
+            const webcamContainer = document.getElementById("webcam-container");
+            webcamContainer.innerHTML = '';
+            webcamContainer.appendChild(videoElement);
+
+            webcam = new tmImage.Webcam(200, 200, false);
+            webcam.canvas = document.createElement('canvas');
+            webcam.canvas.width = 200;
+            webcam.canvas.height = 200;
+            webcam.ctx = webcam.canvas.getContext('2d');
+            webcam.update = () => webcam.ctx.drawImage(videoElement, 0, 0, 200, 200);
+
+            startLoop();
         }
 
         function startLoop() {
@@ -104,68 +135,62 @@
 
         async function toggleWebcam() {
             const button = document.getElementById('toggleButton');
-            const webcamContainer = document.getElementById('webcam-container');
+            const flipBtn = document.getElementById('flipButton');
 
             if (!isRunning) {
-                // Clear the webcam container before starting
-                webcamContainer.innerHTML = '';
-
                 await init();
-                button.textContent = 'Stop';
+                await startWebcam();
+                button.textContent = 'TẮT';
                 button.classList.add('stop');
+                flipBtn.style.display = 'inline-block';
             } else {
                 stopLoop();
-                if (webcam) {
-                    webcam.stop();
-                    // Clear the webcam container
-                    webcamContainer.innerHTML = '';
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
                 }
-                button.textContent = 'Start';
+                document.getElementById("webcam-container").innerHTML = '';
+                button.textContent = 'BẬT';
                 button.classList.remove('stop');
-                labelContainer.innerHTML = null;
+                labelContainer.innerHTML = '';
+                flipBtn.style.display = 'none';
             }
         }
 
-        // The loop function to constantly get webcam image and make predictions
+        async function flipCamera() {
+            useFrontCamera = !useFrontCamera;
+            await startWebcam();
+        }
+
         let lastPredictTime = 0;
 
         async function loop() {
             if (!isRunning) return;
 
-            webcam.update(); // Cập nhật khung hình webcam
+            webcam.update();
 
             const currentTime = Date.now();
-            // Nếu khoảng thời gian giữa các lần gọi predict lớn hơn 2000ms (2 giây), mới gọi predict
             if (currentTime - lastPredictTime > 100) {
                 lastPredictTime = currentTime;
-                await predict(); // Gọi hàm predict với delay
+                await predict();
             }
 
-            animationFrameId = window.requestAnimationFrame(loop); // Gọi lại vòng lặp
+            animationFrameId = window.requestAnimationFrame(loop);
         }
 
-        // Function to predict the webcam image using Teachable Machine model
         async function predict() {
             const prediction = await model.predictTopK(webcam.canvas, 1);
-            // for (let i = 0; i < maxPredictions; i++) {
-            //     const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-            //     labelContainer.childNodes[i].innerHTML = classPrediction;
-            // }
             if (prediction[0].probability >= 0.955) {
                 result = prediction[0].className;
-            }
-            else {
+            } else {
                 result = "Chưa nhận diện được";
             }
             labelContainer.innerHTML = result;
             console.log("Prediction Result:", result);
-            // Send the result to the server
             sendResultToServer(result);
         }
 
-        // Function to send the result to the server
         async function sendResultToServer(result) {
-            fetch('httpss://lekhaquynhnhu.id.vn/process-result', {
+            fetch('https://lekhaquynhnhu.id.vn/process-result', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
