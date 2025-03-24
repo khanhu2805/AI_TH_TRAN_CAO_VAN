@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,20 +11,61 @@
             max-width: 500px;
             border: 1px solid black;
         }
+
+        h1 {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .custom-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .custom-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .custom-button.stop {
+            background-color: #f44336;
+        }
     </style>
 </head>
+
 <body>
-    <h1>Teachable Machine Image Model</h1>
-    <button type="button" onclick="init()">Start</button>
+    <h1>NHẬN DIỆN MỞ KHÓA</h1>
+    <button id="toggleButton" class="custom-button" onclick="toggleWebcam()">Start</button>
     <div id="webcam-container"></div>
     <div id="label-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script type="text/javascript">
         const URL = "https://teachablemachine.withgoogle.com/models/PmUojyI2g/";
 
         let model, webcam, labelContainer, maxPredictions, result;
+        let isRunning = false;
+        let animationFrameId = null;
 
         // Load the image model and setup the webcam
         async function init() {
@@ -37,33 +79,70 @@
             webcam = new tmImage.Webcam(200, 200, true); // true for flip
             await webcam.setup(); // Request access to webcam
             await webcam.play(); // Start webcam
-            window.requestAnimationFrame(loop);
+            startLoop();
 
-            // Append webcam canvas to HTML container
-            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            // Clear container and append new webcam canvas
+            const webcamContainer = document.getElementById("webcam-container");
+            webcamContainer.innerHTML = ''; // Clear any existing content
+            webcamContainer.appendChild(webcam.canvas);
 
             labelContainer = document.getElementById("label-container");
-            // for (let i = 0; i < maxPredictions; i++) {
-            //     labelContainer.appendChild(document.createElement("div"));
-            // }
+        }
+
+        function startLoop() {
+            isRunning = true;
+            animationFrameId = window.requestAnimationFrame(loop);
+        }
+
+        function stopLoop() {
+            isRunning = false;
+            if (animationFrameId) {
+                window.cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        }
+
+        async function toggleWebcam() {
+            const button = document.getElementById('toggleButton');
+            const webcamContainer = document.getElementById('webcam-container');
+
+            if (!isRunning) {
+                // Clear the webcam container before starting
+                webcamContainer.innerHTML = '';
+
+                await init();
+                button.textContent = 'Stop';
+                button.classList.add('stop');
+            } else {
+                stopLoop();
+                if (webcam) {
+                    webcam.stop();
+                    // Clear the webcam container
+                    webcamContainer.innerHTML = '';
+                }
+                button.textContent = 'Start';
+                button.classList.remove('stop');
+                labelContainer.innerHTML = null;
+            }
         }
 
         // The loop function to constantly get webcam image and make predictions
         let lastPredictTime = 0;
 
-async function loop() {
-    webcam.update(); // Cập nhật khung hình webcam
+        async function loop() {
+            if (!isRunning) return;
 
-    const currentTime = Date.now();
-    // Nếu khoảng thời gian giữa các lần gọi predict lớn hơn 2000ms (2 giây), mới gọi predict
-    if (currentTime - lastPredictTime > 100) {
-        lastPredictTime = currentTime;
-        await predict(); // Gọi hàm predict với delay
-    }
+            webcam.update(); // Cập nhật khung hình webcam
 
-    window.requestAnimationFrame(loop); // Gọi lại vòng lặp
-}
+            const currentTime = Date.now();
+            // Nếu khoảng thời gian giữa các lần gọi predict lớn hơn 2000ms (2 giây), mới gọi predict
+            if (currentTime - lastPredictTime > 100) {
+                lastPredictTime = currentTime;
+                await predict(); // Gọi hàm predict với delay
+            }
 
+            animationFrameId = window.requestAnimationFrame(loop); // Gọi lại vòng lặp
+        }
 
         // Function to predict the webcam image using Teachable Machine model
         async function predict() {
@@ -73,13 +152,12 @@ async function loop() {
             //     labelContainer.childNodes[i].innerHTML = classPrediction;
             // }
             if (prediction[0].probability >= 0.955) {
-                
                 result = prediction[0].className;
             }
             else {
-                result = "Chưa nhận diện được"; 
+                result = "Chưa nhận diện được";
             }
-            labelContainer.innerHTML = result ;
+            labelContainer.innerHTML = result;
             console.log("Prediction Result:", result);
             // Send the result to the server
             sendResultToServer(result);
@@ -94,12 +172,13 @@ async function loop() {
                 },
                 body: JSON.stringify({ result: result })
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Result sent to server:", data);
-            })
-            .catch(error => console.error('Error sending result to server:', error));
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Result sent to server:", data);
+                })
+                .catch(error => console.error('Error sending result to server:', error));
         }
     </script>
 </body>
+
 </html>
