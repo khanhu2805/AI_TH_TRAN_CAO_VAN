@@ -1,209 +1,217 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NHẬN DIỆN MỞ KHÓA</title>
     <style>
-        video, canvas {
-            width: 100%;
-            max-width: 500px;
-            border: 1px solid black;
-        }
+      video,
+      canvas {
+        width: 100%;
+        max-width: 500px;
+        border: 1px solid black;
+      }
 
-        h1 {
-            text-align: center;
-            margin: 20px 0;
-        }
+      h1 {
+        text-align: center;
+        margin: 20px 0;
+      }
 
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+      }
 
-        .custom-button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 15px 32px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-            border-radius: 25px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
+      .custom-button {
+        background-color: #4caf50;
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 25px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
 
-        .custom-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-        }
+      .custom-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+      }
 
-        .custom-button.stop {
-            background-color: #f44336;
-        }
+      .custom-button.stop {
+        background-color: #f44336;
+      }
 
-        #flipButton {
-            display: none;
-        }
+      #flipButton {
+        display: none;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <h1>NHẬN DIỆN MỞ KHÓA</h1>
-    <button id="toggleButton" class="custom-button" onclick="toggleWebcam()">BẬT</button>
-    <button id="flipButton" class="custom-button" onclick="flipCamera()">LẬT CAMERA</button>
+    <br />
+    <h1>TIỂU HỌC TRẦN CAO VÂN</h1>
+    <button id="toggleButton" class="custom-button" onclick="toggleWebcam()">
+      BẬT
+    </button>
+    <button id="flipButton" class="custom-button" onclick="flipCamera()">
+      LẬT CAMERA
+    </button>
     <div id="webcam-container"></div>
     <div id="label-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script type="text/javascript">
-        const URL = "https://teachablemachine.withgoogle.com/models/NJbZPcYq_/";
-        let model, labelContainer, maxPredictions, result;
-        let isRunning = false;
-        let animationFrameId = null;
-        let currentStream = null;
-        let videoElement = null;
-        let useFrontCamera = true;
-        let webcam = null;
+      const URL = "https://teachablemachine.withgoogle.com/models/e9nhOGItM/";
+      let model, labelContainer, maxPredictions, result;
+      let isRunning = false;
+      let animationFrameId = null;
+      let currentStream = null;
+      let videoElement = null;
+      let useFrontCamera = true;
+      let webcam = null;
 
-        async function init() {
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
+      async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
 
-            model = await tmImage.load(modelURL, metadataURL);
-            maxPredictions = model.getTotalClasses();
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
 
-            labelContainer = document.getElementById("label-container");
+        labelContainer = document.getElementById("label-container");
+      }
+
+      async function startWebcam() {
+        if (currentStream) {
+          currentStream.getTracks().forEach((track) => track.stop());
         }
 
-        async function startWebcam() {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-            }
+        const constraints = {
+          video: {
+            facingMode: useFrontCamera ? "user" : "environment",
+            width: 200,
+            height: 200,
+          },
+        };
 
-            const constraints = {
-                video: {
-                    facingMode: useFrontCamera ? 'user' : 'environment',
-                    width: 200,
-                    height: 200
-                }
-            };
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
 
-            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoElement = document.createElement("video");
+        videoElement.srcObject = currentStream;
+        videoElement.setAttribute("playsinline", "");
+        videoElement.width = 200;
+        videoElement.height = 200;
+        await videoElement.play();
 
-            videoElement = document.createElement('video');
-            videoElement.srcObject = currentStream;
-            videoElement.setAttribute('playsinline', '');
-            videoElement.width = 200;
-            videoElement.height = 200;
-            await videoElement.play();
+        const webcamContainer = document.getElementById("webcam-container");
+        webcamContainer.innerHTML = "";
+        webcamContainer.appendChild(videoElement);
 
-            const webcamContainer = document.getElementById("webcam-container");
-            webcamContainer.innerHTML = '';
-            webcamContainer.appendChild(videoElement);
+        webcam = new tmImage.Webcam(200, 200, false);
+        webcam.canvas = document.createElement("canvas");
+        webcam.canvas.width = 200;
+        webcam.canvas.height = 200;
+        webcam.ctx = webcam.canvas.getContext("2d");
+        webcam.update = () =>
+          webcam.ctx.drawImage(videoElement, 0, 0, 200, 200);
 
-            webcam = new tmImage.Webcam(200, 200, false);
-            webcam.canvas = document.createElement('canvas');
-            webcam.canvas.width = 200;
-            webcam.canvas.height = 200;
-            webcam.ctx = webcam.canvas.getContext('2d');
-            webcam.update = () => webcam.ctx.drawImage(videoElement, 0, 0, 200, 200);
+        startLoop();
+      }
 
-            startLoop();
+      function startLoop() {
+        isRunning = true;
+        animationFrameId = window.requestAnimationFrame(loop);
+      }
+
+      function stopLoop() {
+        isRunning = false;
+        if (animationFrameId) {
+          window.cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+      }
+
+      async function toggleWebcam() {
+        const button = document.getElementById("toggleButton");
+        const flipBtn = document.getElementById("flipButton");
+
+        if (!isRunning) {
+          await init();
+          await startWebcam();
+          button.textContent = "TẮT";
+          button.classList.add("stop");
+          flipBtn.style.display = "inline-block";
+        } else {
+          stopLoop();
+          if (currentStream) {
+            currentStream.getTracks().forEach((track) => track.stop());
+          }
+          document.getElementById("webcam-container").innerHTML = "";
+          button.textContent = "BẬT";
+          button.classList.remove("stop");
+          labelContainer.innerHTML = "";
+          flipBtn.style.display = "none";
+        }
+      }
+
+      async function flipCamera() {
+        useFrontCamera = !useFrontCamera;
+        await startWebcam();
+      }
+
+      let lastPredictTime = 0;
+
+      async function loop() {
+        if (!isRunning) return;
+
+        webcam.update();
+
+        const currentTime = Date.now();
+        if (currentTime - lastPredictTime > 100) {
+          lastPredictTime = currentTime;
+          await predict();
         }
 
-        function startLoop() {
-            isRunning = true;
-            animationFrameId = window.requestAnimationFrame(loop);
+        animationFrameId = window.requestAnimationFrame(loop);
+      }
+
+      async function predict() {
+        const prediction = await model.predictTopK(webcam.canvas, 1);
+        if (prediction[0].probability >= 0.955) {
+          result = prediction[0].className;
+        } else {
+          result = "Chưa nhận diện được";
         }
+        labelContainer.innerHTML = result;
+        console.log("Prediction Result:", result);
+        sendResultToServer(result);
+      }
 
-        function stopLoop() {
-            isRunning = false;
-            if (animationFrameId) {
-                window.cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
-        }
-
-        async function toggleWebcam() {
-            const button = document.getElementById('toggleButton');
-            const flipBtn = document.getElementById('flipButton');
-
-            if (!isRunning) {
-                await init();
-                await startWebcam();
-                button.textContent = 'TẮT';
-                button.classList.add('stop');
-                flipBtn.style.display = 'inline-block';
-            } else {
-                stopLoop();
-                if (currentStream) {
-                    currentStream.getTracks().forEach(track => track.stop());
-                }
-                document.getElementById("webcam-container").innerHTML = '';
-                button.textContent = 'BẬT';
-                button.classList.remove('stop');
-                labelContainer.innerHTML = '';
-                flipBtn.style.display = 'none';
-            }
-        }
-
-        async function flipCamera() {
-            useFrontCamera = !useFrontCamera;
-            await startWebcam();
-        }
-
-        let lastPredictTime = 0;
-
-        async function loop() {
-            if (!isRunning) return;
-
-            webcam.update();
-
-            const currentTime = Date.now();
-            if (currentTime - lastPredictTime > 100) {
-                lastPredictTime = currentTime;
-                await predict();
-            }
-
-            animationFrameId = window.requestAnimationFrame(loop);
-        }
-
-        async function predict() {
-            const prediction = await model.predictTopK(webcam.canvas, 1);
-            if (prediction[0].probability >= 0.955) {
-                result = prediction[0].className;
-            } else {
-                result = "Chưa nhận diện được";
-            }
-            labelContainer.innerHTML = result;
-            console.log("Prediction Result:", result);
-            sendResultToServer(result);
-        }
-
-        async function sendResultToServer(result) {
-            fetch('https://lekhaquynhnhu.id.vn/process-result', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ result: result })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log("Result sent to server:", data);
-                })
-                .catch(error => console.error('Error sending result to server:', error));
-        }
+      async function sendResultToServer(result) {
+        fetch("https://lekhaquynhnhu.id.vn/process-result", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ result: result }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Result sent to server:", data);
+          })
+          .catch((error) =>
+            console.error("Error sending result to server:", error)
+          );
+      }
     </script>
-</body>
-
+  </body>
 </html>
