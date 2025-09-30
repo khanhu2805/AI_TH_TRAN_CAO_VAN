@@ -1,0 +1,11 @@
+[build]
+  # Thư mục chứa các file tĩnh (HTML, CSS, JS front-end)
+  publish = "app/public"
+  # Thư mục chứa các Netlify Functions đã được build
+  functions = "netlify/functions"
+
+[[redirects]]
+  # Chuyển hướng tất cả các request API đến function của bạn
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
