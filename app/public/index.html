@@ -58,7 +58,7 @@
   <body>
     <h1>NHẬN DIỆN MỞ KHÓA</h1>
     <br />
-    <h1>TIỂU HỌC TRẦN CAO VÂN</h1>
+    <h1>THCS CHÂU VĂN LIÊM</h1>
     <button id="toggleButton" class="custom-button" onclick="toggleWebcam()">
       BẬT
     </button>
@@ -71,7 +71,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script type="text/javascript">
-      const URL = "https://teachablemachine.withgoogle.com/models/e9nhOGItM/";
+      const URL = "https://teachablemachine.withgoogle.com/models/-VF_y1aDI/";
       let model, labelContainer, maxPredictions, result;
       let isRunning = false;
       let animationFrameId = null;
@@ -186,7 +186,7 @@
 
       async function predict() {
         const prediction = await model.predictTopK(webcam.canvas, 1);
-        if (prediction[0].probability >= 0.955) {
+        if (prediction[0].probability >= 1) {
           result = prediction[0].className;
         } else {
           result = "Chưa nhận diện được";
@@ -197,7 +197,7 @@
       }
 
       async function sendResultToServer(result) {
-        fetch("https://thphanhuyich.netlify.app/.netlify/functions/api/process-result", {
+        fetch("https://thcschauvanliem.netlify.app/.netlify/functions/api/process-result", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
