@@ -176,7 +176,7 @@
         webcam.update();
 
         const currentTime = Date.now();
-        if (currentTime - lastPredictTime > 100) {
+        if (currentTime - lastPredictTime > 1000) {
           lastPredictTime = currentTime;
           await predict();
         }
@@ -186,27 +186,31 @@
 
       async function predict() {
         const prediction = await model.predictTopK(webcam.canvas, 1);
-        if (prediction[0].probability >= 1) {
+        if (prediction[0].probability >= 0.999) {
           result = prediction[0].className;
         } else {
           result = "Chưa nhận diện được";
         }
         labelContainer.innerHTML = result;
-        console.log("Prediction Result:", result);
+        // console.log("Prediction Result:", result);
+        // console.log("Prediction Result:", prediction[0].probability);
         sendResultToServer(result);
       }
 
       async function sendResultToServer(result) {
-        fetch("https://thcschauvanliem.netlify.app/.netlify/functions/api/process-result", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ result: result }),
-        })
+        fetch(
+          "https://thcschauvanliem.netlify.app/.netlify/functions/api/process-result",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ result: result }),
+          }
+        )
           .then((response) => response.json())
           .then((data) => {
-            console.log("Result sent to server:", data);
+            // console.log("Result sent to server:", data);
           })
           .catch((error) =>
             console.error("Error sending result to server:", error)
