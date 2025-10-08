@@ -176,7 +176,7 @@
         webcam.update();
 
         const currentTime = Date.now();
-        if (currentTime - lastPredictTime > 1000) {
+        if (currentTime - lastPredictTime > 100) {
           lastPredictTime = currentTime;
           await predict();
         }
