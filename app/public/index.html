@@ -192,7 +192,7 @@
           result = "Chưa nhận diện được";
         }
         labelContainer.innerHTML = result;
-        // console.log("Prediction Result:", result);
+        console.log("Prediction Result:", result);
         // console.log("Prediction Result:", prediction[0].probability);
         sendResultToServer(result);
       }
@@ -210,7 +210,7 @@
         )
           .then((response) => response.json())
           .then((data) => {
-            // console.log("Result sent to server:", data);
+            console.log("Result sent to server:", data);
           })
           .catch((error) =>
             console.error("Error sending result to server:", error)
